@@ -1,0 +1,161 @@
+CS   20: Tensorflow for Deep Learning Research   http://web.stanford.edu/class/cs20si/syllabus.html
+CS 231n: Convolutional Neural Networks for Visual Recognition http://cs231n.github.io/    2017春季的课程还介绍了很Modern的GAN（生成对抗网络）和Deep Reinforcement Learning（深度强化学习，AlphaGo和前几天OpenAI的DOTA AI的背后原理)。
+
+
+
+时间结构共享是递归网络的核心中的核心
+
+
+
+--------------------------随机梯度下降指的是一次只对一个样本进行梯度计算，具有很强的随机性 哦～这样子啊----------------------------------
+输入矩阵形状：(n_samples, dim_input)
+输出矩阵形状：(n_samples, dim_output)
+注：真正测试/训练的时候，网络的输入和输出就是向量而已。加入n_samples这个维度是为了可以实现一次训练多个样本，求出平均梯度来更新权重，这个叫做Mini-batch gradient descent。如果n_samples等于1，那么这种更新方式叫做Stochastic Gradient Descent (SGD)。
+
+
+
+---------------------------------关系----------------------------------------------------
+普通RNN好比是手机屏幕，而LSTM-RNN好比是手机膜。
+大量非线性累积历史信息会造成梯度消失(梯度爆炸)好比是不断使用后容易使屏幕刮花。
+而LSTM将信息的积累建立在线性自连接的memory cell之上，并靠其作为中间物来计算当前[公式]好比是用手机屏幕膜作为中间物来观察手机屏幕。
+输入门、遗忘门、输出门的过滤作用好比是手机屏幕膜的反射率、吸收率、透射率三种性质
+
+
+--------------------------error------------------------------------
+  def call(self, inputs, state):
+    """Gated recurrent unit (GRU) with nunits cells."""
+    # Multiply the matrix "a" by the matrix "b". 链接Xt 和 Ht-1
+    '''state=Ht-1   input=Xt'''
+    gate_inputs = math_ops.matmul(
+        array_ops.concat([inputs, state], 1),# connect the second dim of two matrixs
+        self._gate_kernel)
+
+    '''gate_inputs was poolinged by Ht-1 and Zt     _gate_bias equals Wr and Wz'''
+    gate_inputs = nn_ops.bias_add(gate_inputs, self._gate_bias)# https://www.cnblogs.com/lovychen/p/9372321.html--add two matrix in diff dim
+
+    '''value include Rt and Zt'''
+    value = math_ops.sigmoid(gate_inputs)
+
+    ''''r=Rt    u=Zt'''
+    r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)
+
+    '''Rt mul Ht-1'''
+    r_state = r * state
+
+    '''_candidate_kernel=Wh'''
+    candidate = math_ops.matmul(
+        array_ops.concat([inputs, r_state], 1), self._candidate_kernel)
+    candidate = nn_ops.bias_add(candidate, self._candidate_bias)
+
+    '''c=h~(t) '''
+    c = self._activation(candidate)
+
+    '''pay attention!
+    why not [(1 - u) * state + u * c]???'''
+    new_h = u * state + (1 - u) * c
+    return new_h, new_h
+
+
+
+
+
+
+
+
+
+
+1、train_episode和test_episode目录先各收集到５个episode， /planet/control/random_episodes.py def random_episodes() |初始化def _initial_collection() | /planet/training/utility.py  def collect_initial_episodes()中调用
+
+2、然后开始５万步，每一步从train_episode取数据，      	 /planet/scripts/configs.py ----> def _training_schedule(config, params):
+3、计算loss。						 /planet/training/define_model.py ---->   train_loss = tf.cond()
+4、去求gradient，再planning出一个episode。
+5、5万步后是100步的test phase，会从test_episode得数据 	/planet/scripts/configs.py ----> def _training_schedule(config, params):
+6、不求loss 不求gradient，                           	/planet/training/define_model.py ---->   train_loss = tf.cond()
+7、它会planning出一个episode (这步是由下图代码决定的).	/planet/training/test_running.py   --->   with tf.variable_scope('simulation')
+
+
+为了学习准确的潜在动力学模型，团队引入了----->
+循环状态空间模型：具有确定性和随机性成分的潜在动力学模型，允许根据稳健的计划预测各种可能的未来，同时记住多个时间步骤的信息。实验表明，这两个组件对于高规划性能至关重要。
+潜在的超调目标：将潜动力模型的标准训练目标推广到训练多步预测，通过在潜空间中加强一步预测和多步预测的一致性。这产生了一个快速和有效的目标，提高了长期预测，并与任何潜在序列模型兼容。
+总结：
+虽然预测未来图像允许教授模型，但编码和解码图像（上图中的梯形）需要大量计算，这会减慢计划。然而，在紧凑的潜在状态空间中的规划是快速的，因为我们仅需要预测未来的奖励而不是图像来评估动作序列。
+
+
+例如，智能体可以想象球的位置及其与目标的距离将如何针对某些动作而改变，而不必使场景可视化。
+这允许在智能体每次选择动作时能够比较1万个想象的`动作序列`(之后的好多步动作，这里是12步)和并对回报大小进行计算，最后执行找到的`最佳序列`的`第一个`动作，执行结束后并对之后的动作`重新进行计划`。
+
+
+computation 	计算
+facilitate 	促进
+browser  	浏览器
+property	属性
+a bit tricky	有点棘手
+linear		线性
+Intuitively	直观的说
+quadratic	二次
+Generative Adversarial Network 生成对抗
+volume		体积
+illustration	插图
+inference 	推理
+phase		阶段
+Brief		短时间的; 短暂的; 简洁的; 简单的;
+Introduction	初次投入使用; 采用; 引进; 推行; 新采用的事物; 介绍，引见(这个最多)
+Implementation	执行，履行；实施，贯彻；生效；完成; 工具；仪器；供
+Terminology	术语
+notation	符号
+Variants	变体
+omitted删除; 忽略; 漏掉; 遗漏; 不做; 未能做; omit的过去分词和过去式
+
+notation	符号，记号，谱号
+stabilizing training 稳定训练
+accelerating convergence 加速收敛
+improving generalization 提高泛化性
+variance 	方差
+despite 	取代 though 尽管
+variance	变化幅度; 差额
+simulated	假装的; 仿造的; 模拟的; 假装; 冒充; 装作; 模拟; 模仿; simulate的过去分词和过去式
+adaptive	适应的; 有适应能力的
+rectifies	修正
+derivations	导数
+discounted	折扣
+
+due to the limited amount of training samples being used 由于使用的训练样本有限
+which not only explicitly rectifies the variance and is theoretical sound 这不仅能够修正方差并且在理论上也是可行的
+state-of-the-art results and anecdotal evidence 最新成果 有说服力的成果 
+The return Zπ is the sum of discounted rewards along the agent’s trajectory of interactions with the environment. 返回的zn是与环境交互所返回的折扣值的总和
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+AlexNet将LeNet的思想发扬光大，把CNN的基本原理应用到了很深很宽的网络中。AlexNet主要使用到的新技术点如下：
+（1）成功使用ReLU作为CNN的激活函数，并验证其效果在较深的网络超过了Sigmoid，成功解决了Sigmoid在网络较深时的梯度弥散问题。虽然ReLU激活函数在很久之前就被提出了，但是直到AlexNet的出现才将其发扬光大。
+（2）训练时使用Dropout随机忽略一部分神经元，以避免模型过拟合。Dropout虽有单独的论文论述，但是AlexNet将其实用化，通过实践证实了它的效果。在AlexNet中主要是最后几个全连接层使用了Dropout。
+（3）在CNN中使用重叠的最大池化。此前CNN中普遍使用平均池化，AlexNet全部使用最大池化，避免平均池化的模糊化效果。并且AlexNet中提出让步长比池化核的尺寸小，这样池化层的输出之间会有重叠和覆盖，提升了特征的丰富性。
+（4）提出了LRN层，对局部神经元的活动创建竞争机制，使得其中响应比较大的值变得相对更大，并抑制其他反馈较小的神经元，增强了模型的泛化能力。
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+radam在自然语言、图像分类以及翻译的效果 
+on language modeling, image classification, and neural machine translation. RAdam brings consistent improvement over the vanilla Adam
+
+mmcts2.py: 这个只是检测当前有多少cpu
+N_WORKERS = multiprocessing.cpu_count()
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,48 @@
+/*ROS notebook*/
+
+# 指令
+catkin_make 编译
+roscd  定位到安装路径  /opt/ros/melodic
+roscd roscpp  定位到文件 /opt/ros/melodic/share/
+--------------------------------------------------------------------------------------------------------------------
+# 结构
+/devel 为编译存储位置 编译完成后也同样放到devel/lib中
+/build 存放编译过程中包生成的文件
+/src 存放具体包代码
+--------------------------------------------------------------------------------------------------------------------
+# 创建第一个工程hello   
+# https://www.ncnynl.com/archives/201608/509.html 
+$ mkdir hello 目标工程
+$ cd ~/hello/src  创建一个src文件
+$ catkin_create_pkg beginner_tutorials std_msgs rospy roscpp   创建beginner_tutorials包并加入三个依赖
+$ cd ~/hello/  返回hello 
+$ catkin_make 编译后beginner中会生成不少文件cmake package.xml之类的
+# keypoint: add the workspace(. ~/hello/devel/setup.bash) to (/home/dong/.bashrc) ROS environment ,then restart terminnal can then
+$ roscd beginner_tutorials/src 进入source code floder 编写.cpp
+# CMakeLists.txt 中添加源代码的编译链接
+$ cd ~/hello/ 
+$ catkin_make 
+# 这时候 hello/devel/lib 中beginner_tutorials 含有可执行文件 talker listener terminal 
+$ ./talker
+$ ./listener
+# 完成
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
